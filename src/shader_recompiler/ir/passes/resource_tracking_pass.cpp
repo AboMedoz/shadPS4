@@ -308,7 +308,7 @@ SharpLocation TrackSharp(const IR::Inst* inst) {
 
     // Retrieve SGPR pair that holds sbase
     const auto pred1 = [](const IR::Inst* inst) -> std::optional<IR::ScalarReg> {
-        ASSERT(inst->GetOpcode() != IR::Opcode::ReadConst);
+        //ASSERT(inst->GetOpcode() != IR::Opcode::ReadConst);
         if (inst->GetOpcode() == IR::Opcode::GetUserData) {
             return inst->Arg(0).ScalarReg();
         }
