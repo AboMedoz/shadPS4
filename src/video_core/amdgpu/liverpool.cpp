@@ -645,6 +645,9 @@ Liverpool::Task Liverpool::ProcessCompute(std::span<const u32> acb, int vqid) {
             release_mem->SignalFence(Platform::InterruptId::Compute0RelMem); // <---
             break;
         }
+        case PM4ItOpcode::DmaData: {
+            break;
+        }
         default:
             UNREACHABLE_MSG("Unknown PM4 type 3 opcode {:#x} with count {}",
                             static_cast<u32>(opcode), count);
