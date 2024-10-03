@@ -191,7 +191,7 @@ const ComputePipeline* PipelineCache::GetComputePipeline() {
 }
 
 bool ShouldSkipShader(u64 shader_hash, const char* shader_type) {
-    static constexpr std::array<u64, 0> skip_hashes = {};
+    static constexpr std::array<u64, 2> skip_hashes = {0xb585d534, 0x29c851e0}; //WE SKIP Ubnorm SHADERS FOR NOW
     if (std::ranges::contains(skip_hashes, shader_hash)) {
         LOG_WARNING(Render_Vulkan, "Skipped {} shader hash {:#x}.", shader_type, shader_hash);
         return true;
