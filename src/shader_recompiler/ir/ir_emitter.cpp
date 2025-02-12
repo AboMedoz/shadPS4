@@ -858,6 +858,7 @@ Value IREmitter::Unpack2x16(const AmdGpu::NumberFormat number_format, const U32&
     switch (number_format) {
     case AmdGpu::NumberFormat::Unorm:
         return Inst(Opcode::UnpackUnorm2x16, value);
+    case AmdGpu::NumberFormat::SnormNz:
     case AmdGpu::NumberFormat::Snorm:
         return Inst(Opcode::UnpackSnorm2x16, value);
     case AmdGpu::NumberFormat::Uint:
