@@ -31,10 +31,7 @@ std::filesystem::path find_fs_path_or(const basic_value<TC>& v, const K& ky,
 
 namespace Config {
 
-static bool isHDRAllowed = false;
 static bool isNeo = false;
-static bool isFullscreen = false;
-static std::string fullscreenMode = "borderless";
 static bool playBGM = false;
 static bool isTrophyPopupDisabled = false;
 static int BGMvolume = 50;
@@ -55,6 +52,7 @@ static bool isDebugDump = false;
 static bool isShaderDebug = false;
 static bool isShowSplash = false;
 static bool isAutoUpdate = false;
+static bool isAlwaysShowChangelog = false;
 static bool isNullGpu = false;
 static bool shouldCopyGPUBuffers = false;
 static bool shouldDumpShaders = false;
@@ -67,9 +65,13 @@ static bool vkCrashDiagnostic = false;
 static bool vkHostMarkers = false;
 static bool vkGuestMarkers = false;
 static bool rdocEnable = false;
+static bool isFpsColor = true;
+static bool isSeparateLogFilesEnabled = false;
 static s16 cursorState = HideCursorState::Idle;
 static int cursorHideTimeout = 5; // 5 seconds (default)
 static bool useUnifiedInputConfig = true;
+static bool overrideControllerColor = false;
+static int controllerCustomColorRGB[3] = {0, 0, 255};
 static bool separateupdatefolder = false;
 static bool compatibilityData = false;
 static bool checkCompatibilityOnStartup = false;
@@ -95,9 +97,12 @@ u32 m_window_size_H = 720;
 std::vector<std::string> m_pkg_viewer;
 std::vector<std::string> m_elf_viewer;
 std::vector<std::string> m_recent_files;
-std::string emulator_language = "en";
+std::string emulator_language = "en_US";
 static int backgroundImageOpacity = 50;
 static bool showBackgroundImage = true;
+static bool isFullscreen = false;
+static std::string fullscreenMode = "Windowed";
+static bool isHDRAllowed = false;
 
 // Language
 u32 m_language = 1; // english
@@ -112,6 +117,24 @@ bool GetUseUnifiedInputConfig() {
 
 void SetUseUnifiedInputConfig(bool use) {
     useUnifiedInputConfig = use;
+}
+
+bool GetOverrideControllerColor() {
+    return overrideControllerColor;
+}
+
+void SetOverrideControllerColor(bool enable) {
+    overrideControllerColor = enable;
+}
+
+int* GetControllerCustomColor() {
+    return controllerCustomColorRGB;
+}
+
+void SetControllerCustomColor(int r, int b, int g) {
+    controllerCustomColorRGB[0] = r;
+    controllerCustomColorRGB[1] = b;
+    controllerCustomColorRGB[2] = g;
 }
 
 std::string getTrophyKey() {
@@ -237,6 +260,10 @@ bool autoUpdate() {
     return isAutoUpdate;
 }
 
+bool alwaysShowChangelog() {
+    return isAlwaysShowChangelog;
+}
+
 bool nullGpu() {
     return isNullGpu;
 }
@@ -255,6 +282,10 @@ bool patchShaders() {
 
 bool isRdocEnabled() {
     return rdocEnable;
+}
+
+bool fpsColor() {
+    return isFpsColor;
 }
 
 u32 vblankDiv() {
@@ -337,6 +368,10 @@ void setAutoUpdate(bool enable) {
     isAutoUpdate = enable;
 }
 
+void setAlwaysShowChangelog(bool enable) {
+    isAlwaysShowChangelog = enable;
+}
+
 void setNullGpu(bool enable) {
     isNullGpu = enable;
 }
@@ -415,6 +450,10 @@ void setLogType(const std::string& type) {
 
 void setLogFilter(const std::string& type) {
     logFilter = type;
+}
+
+void setSeparateLogFilesEnabled(bool enabled) {
+    isSeparateLogFilesEnabled = enabled;
 }
 
 void setUserName(const std::string& type) {
@@ -622,6 +661,10 @@ u32 GetLanguage() {
     return m_language;
 }
 
+bool getSeparateLogFilesEnabled() {
+    return isSeparateLogFilesEnabled;
+}
+
 int getBackgroundImageOpacity() {
     return backgroundImageOpacity;
 }
@@ -660,10 +703,7 @@ void load(const std::filesystem::path& path) {
     if (data.contains("General")) {
         const toml::value& general = data.at("General");
 
-        isHDRAllowed = toml::find_or<bool>(general, "allowHDR", false);
         isNeo = toml::find_or<bool>(general, "isPS4Pro", false);
-        isFullscreen = toml::find_or<bool>(general, "Fullscreen", false);
-        fullscreenMode = toml::find_or<std::string>(general, "FullscreenMode", "borderless");
         playBGM = toml::find_or<bool>(general, "playBGM", false);
         isTrophyPopupDisabled = toml::find_or<bool>(general, "isTrophyPopupDisabled", false);
         BGMvolume = toml::find_or<int>(general, "BGMvolume", 50);
@@ -678,6 +718,7 @@ void load(const std::filesystem::path& path) {
         }
         isShowSplash = toml::find_or<bool>(general, "showSplash", true);
         isAutoUpdate = toml::find_or<bool>(general, "autoUpdate", false);
+        isAlwaysShowChangelog = toml::find_or<bool>(general, "alwaysShowChangelog", false);
         separateupdatefolder = toml::find_or<bool>(general, "separateUpdateEnabled", false);
         compatibilityData = toml::find_or<bool>(general, "compatibilityEnabled", false);
         checkCompatibilityOnStartup =
@@ -707,6 +748,9 @@ void load(const std::filesystem::path& path) {
         shouldDumpShaders = toml::find_or<bool>(gpu, "dumpShaders", false);
         shouldPatchShaders = toml::find_or<bool>(gpu, "patchShaders", true);
         vblankDivider = toml::find_or<int>(gpu, "vblankDivider", 1);
+        isFullscreen = toml::find_or<bool>(gpu, "Fullscreen", false);
+        fullscreenMode = toml::find_or<std::string>(gpu, "FullscreenMode", "Windowed");
+        isHDRAllowed = toml::find_or<bool>(gpu, "allowHDR", false);
     }
 
     if (data.contains("Vulkan")) {
@@ -726,7 +770,9 @@ void load(const std::filesystem::path& path) {
         const toml::value& debug = data.at("Debug");
 
         isDebugDump = toml::find_or<bool>(debug, "DebugDump", false);
+        isSeparateLogFilesEnabled = toml::find_or<bool>(debug, "isSeparateLogFilesEnabled", false);
         isShaderDebug = toml::find_or<bool>(debug, "CollectShader", false);
+        isFpsColor = toml::find_or<bool>(debug, "FPSColor", true);
     }
 
     if (data.contains("GUI")) {
@@ -758,7 +804,7 @@ void load(const std::filesystem::path& path) {
         m_elf_viewer = toml::find_or<std::vector<std::string>>(gui, "elfDirs", {});
         m_recent_files = toml::find_or<std::vector<std::string>>(gui, "recentFiles", {});
         m_table_mode = toml::find_or<int>(gui, "gameTableMode", 0);
-        emulator_language = toml::find_or<std::string>(gui, "emulatorLanguage", "en");
+        emulator_language = toml::find_or<std::string>(gui, "emulatorLanguage", "en_US");
         backgroundImageOpacity = toml::find_or<int>(gui, "backgroundImageOpacity", 50);
         showBackgroundImage = toml::find_or<bool>(gui, "showBackgroundImage", true);
     }
@@ -772,6 +818,18 @@ void load(const std::filesystem::path& path) {
     if (data.contains("Keys")) {
         const toml::value& keys = data.at("Keys");
         trophyKey = toml::find_or<std::string>(keys, "TrophyKey", "");
+    }
+
+    // Check if the loaded language is in the allowed list
+    const std::vector<std::string> allowed_languages = {
+        "ar_SA", "da_DK", "de_DE", "el_GR", "en_US", "es_ES", "fa_IR", "fi_FI", "fr_FR", "hu_HU",
+        "id_ID", "it_IT", "ja_JP", "ko_KR", "lt_LT", "nb_NO", "nl_NL", "pl_PL", "pt_BR", "pt_PT",
+        "ro_RO", "ru_RU", "sq_AL", "sv_SE", "tr_TR", "uk_UA", "vi_VN", "zh_CN", "zh_TW"};
+
+    if (std::find(allowed_languages.begin(), allowed_languages.end(), emulator_language) ==
+        allowed_languages.end()) {
+        emulator_language = "en_US"; // Default to en_US if not in the list
+        save(path);
     }
 }
 
@@ -796,10 +854,7 @@ void save(const std::filesystem::path& path) {
         fmt::print("Saving new configuration file {}\n", fmt::UTF(path.u8string()));
     }
 
-    data["General"]["allowHDR"] = isHDRAllowed;
     data["General"]["isPS4Pro"] = isNeo;
-    data["General"]["Fullscreen"] = isFullscreen;
-    data["General"]["FullscreenMode"] = fullscreenMode;
     data["General"]["isTrophyPopupDisabled"] = isTrophyPopupDisabled;
     data["General"]["playBGM"] = playBGM;
     data["General"]["BGMvolume"] = BGMvolume;
@@ -811,6 +866,7 @@ void save(const std::filesystem::path& path) {
     data["General"]["chooseHomeTab"] = chooseHomeTab;
     data["General"]["showSplash"] = isShowSplash;
     data["General"]["autoUpdate"] = isAutoUpdate;
+    data["General"]["alwaysShowChangelog"] = isAlwaysShowChangelog;
     data["General"]["separateUpdateEnabled"] = separateupdatefolder;
     data["General"]["compatibilityEnabled"] = compatibilityData;
     data["General"]["checkCompatibilityOnStartup"] = checkCompatibilityOnStartup;
@@ -828,6 +884,9 @@ void save(const std::filesystem::path& path) {
     data["GPU"]["dumpShaders"] = shouldDumpShaders;
     data["GPU"]["patchShaders"] = shouldPatchShaders;
     data["GPU"]["vblankDivider"] = vblankDivider;
+    data["GPU"]["Fullscreen"] = isFullscreen;
+    data["GPU"]["FullscreenMode"] = fullscreenMode;
+    data["GPU"]["allowHDR"] = isHDRAllowed;
     data["Vulkan"]["gpuId"] = gpuId;
     data["Vulkan"]["validation"] = vkValidation;
     data["Vulkan"]["validation_sync"] = vkValidationSync;
@@ -838,6 +897,8 @@ void save(const std::filesystem::path& path) {
     data["Vulkan"]["rdocEnable"] = rdocEnable;
     data["Debug"]["DebugDump"] = isDebugDump;
     data["Debug"]["CollectShader"] = isShaderDebug;
+    data["Debug"]["isSeparateLogFilesEnabled"] = isSeparateLogFilesEnabled;
+    data["Debug"]["FPSColor"] = isFpsColor;
 
     data["Keys"]["TrophyKey"] = trophyKey;
 
@@ -932,6 +993,7 @@ void setDefaultValues() {
     isShaderDebug = false;
     isShowSplash = false;
     isAutoUpdate = false;
+    isAlwaysShowChangelog = false;
     isNullGpu = false;
     shouldDumpShaders = false;
     vblankDivider = 1;
@@ -942,7 +1004,7 @@ void setDefaultValues() {
     vkHostMarkers = false;
     vkGuestMarkers = false;
     rdocEnable = false;
-    emulator_language = "en";
+    emulator_language = "en_US";
     m_language = 1;
     gpuId = -1;
     separateupdatefolder = false;
@@ -1022,6 +1084,8 @@ axis_right_y = axis_right_y
 # Range of deadzones: 1 (almost none) to 127 (max)
 analog_deadzone = leftjoystick, 2, 127
 analog_deadzone = rightjoystick, 2, 127
+
+override_controller_color = false, 0, 0, 255
 )";
 }
 std::filesystem::path GetFoolproofKbmConfigFile(const std::string& game_id) {

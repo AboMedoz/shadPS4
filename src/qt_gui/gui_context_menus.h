@@ -84,7 +84,9 @@ public:
         copyMenu->addAction(copyName);
         copyMenu->addAction(copySerial);
         copyMenu->addAction(copyVersion);
-        copyMenu->addAction(copySize);
+        if (Config::GetLoadGameSizeEnabled()) {
+            copyMenu->addAction(copySize);
+        }
         copyMenu->addAction(copyNameAll);
 
         menu.addMenu(copyMenu);
@@ -161,6 +163,7 @@ public:
 
         if (selected == &openSfoViewer) {
             PSF psf;
+            QString gameName = QString::fromStdString(m_games[itemID].name);
             std::filesystem::path game_folder_path = m_games[itemID].path;
             std::filesystem::path game_update_path = game_folder_path;
             game_update_path += "-UPDATE";
@@ -234,7 +237,7 @@ public:
                 tableWidget->horizontalHeader()->setVisible(false);
 
                 tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-                tableWidget->setWindowTitle(tr("SFO Viewer"));
+                tableWidget->setWindowTitle(tr("SFO Viewer for ") + gameName);
                 tableWidget->show();
             }
         }
@@ -361,12 +364,18 @@ public:
         }
 
         if (selected == copyNameAll) {
+            QString GameSizeEnabled;
+            if (Config::GetLoadGameSizeEnabled()) {
+                GameSizeEnabled = " | Size:" + QString::fromStdString(m_games[itemID].size);
+            }
+
             QClipboard* clipboard = QGuiApplication::clipboard();
-            QString combinedText = QString("Name:%1 | Serial:%2 | Version:%3 | Size:%4")
+            QString combinedText = QString("Name:%1 | Serial:%2 | Version:%3%4")
                                        .arg(QString::fromStdString(m_games[itemID].name))
                                        .arg(QString::fromStdString(m_games[itemID].serial))
                                        .arg(QString::fromStdString(m_games[itemID].version))
-                                       .arg(QString::fromStdString(m_games[itemID].size));
+                                       .arg(GameSizeEnabled);
+
             clipboard->setText(combinedText);
         }
 

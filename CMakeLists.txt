@@ -195,6 +195,7 @@ endif()
 
 add_subdirectory(externals)
 include_directories(src)
+include_directories(Resources)
 
 if(ENABLE_QT_GUI)
     find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent LinguistTools Network Multimedia)
@@ -397,8 +398,17 @@ set(VIDEOOUT_LIB src/core/libraries/videoout/buffer.h
                  src/core/libraries/videoout/videoout_error.h
 )
 
-set(LIBC_SOURCES src/core/libraries/libc_internal/libc_internal.cpp
+set(HLE_LIBC_INTERNAL_LIB src/core/libraries/libc_internal/libc_internal.cpp
                  src/core/libraries/libc_internal/libc_internal.h
+                 src/core/libraries/libc_internal/libc_internal_io.cpp
+                 src/core/libraries/libc_internal/libc_internal_io.h
+                 src/core/libraries/libc_internal/libc_internal_memory.cpp
+                 src/core/libraries/libc_internal/libc_internal_memory.h
+                 src/core/libraries/libc_internal/libc_internal_str.cpp
+                 src/core/libraries/libc_internal/libc_internal_str.h
+                 src/core/libraries/libc_internal/libc_internal_math.cpp
+                 src/core/libraries/libc_internal/libc_internal_math.h
+                 src/core/libraries/libc_internal/printf.h
 )
 
 set(IME_LIB src/core/libraries/ime/error_dialog.cpp
@@ -653,7 +663,7 @@ set(CORE src/core/aerolib/stubs.cpp
          ${KERNEL_LIB}
          ${NETWORK_LIBS}
          ${SYSTEM_LIBS}
-         ${LIBC_SOURCES}
+         ${HLE_LIBC_INTERNAL_LIB}
          ${PAD_LIB}
          ${VIDEOOUT_LIB}
          ${NP_LIBS}
@@ -754,11 +764,11 @@ set(SHADER_RECOMPILER src/shader_recompiler/exception.h
                       src/shader_recompiler/ir/passes/identity_removal_pass.cpp
                       src/shader_recompiler/ir/passes/ir_passes.h
                       src/shader_recompiler/ir/passes/lower_buffer_format_to_raw.cpp
-                      src/shader_recompiler/ir/passes/lower_shared_mem_to_registers.cpp
                       src/shader_recompiler/ir/passes/resource_tracking_pass.cpp
                       src/shader_recompiler/ir/passes/ring_access_elimination.cpp
                       src/shader_recompiler/ir/passes/shader_info_collection_pass.cpp
                       src/shader_recompiler/ir/passes/shared_memory_barrier_pass.cpp
+                      src/shader_recompiler/ir/passes/shared_memory_to_storage_pass.cpp
                       src/shader_recompiler/ir/passes/ssa_rewrite_pass.cpp
                       src/shader_recompiler/ir/abstract_syntax_list.h
                       src/shader_recompiler/ir/attribute.cpp
@@ -1092,6 +1102,19 @@ set(HOST_SHADERS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/src/video_core/host_shaders
 add_subdirectory(${HOST_SHADERS_INCLUDE})
 add_dependencies(shadps4 host_shaders)
 target_include_directories(shadps4 PRIVATE ${HOST_SHADERS_INCLUDE})
+
+# embed resources
+
+include(CMakeRC)
+cmrc_add_resource_library(embedded-resources
+        ALIAS res::embedded
+        NAMESPACE res
+        src/images/bronze.png
+        src/images/gold.png
+        src/images/platinum.png
+        src/images/silver.png)
+
+target_link_libraries(shadps4 PRIVATE res::embedded)
 
 # ImGui resources
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/imgui/renderer)
